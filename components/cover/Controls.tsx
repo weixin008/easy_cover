@@ -309,13 +309,27 @@ export default function Controls() {
           {/* Text Section */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">文字设置</h3>
-            <div className="space-y-2">
-              <Label>内容</Label>
-              <Input 
-                value={store.text.content} 
-                onChange={(e) => store.updateText({ content: e.target.value })} 
-              />
-            </div>
+                        <div className="space-y-2">
+                             <Label>文字行数</Label>
+                             <Select value={store.text.lineMode} onValueChange={(v) => store.updateText({ lineMode: v as 'single' | 'double' | 'triple' })}>
+                                     <SelectTrigger>
+                                             <SelectValue placeholder="选择行数" />
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                             <SelectItem value="single">单行</SelectItem>
+                                             <SelectItem value="double">两行</SelectItem>
+                                             <SelectItem value="triple">三行</SelectItem>
+                                     </SelectContent>
+                             </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>内容</Label>
+                            <Input 
+                                value={store.text.content} 
+                                onChange={(e) => store.updateText({ content: e.target.value })} 
+                            />
+                        </div>
             
             <div className="space-y-2">
                <Label>字体</Label>
@@ -414,13 +428,30 @@ export default function Controls() {
                <Label>描边颜色</Label>
                <ColorPicker color={store.text.strokeColor} onChange={(c) => store.updateText({ strokeColor: c })} />
             </div>
+            
+
+            {store.text.lineMode !== 'single' && (
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <Label>行间距 ({store.text.lineSpacing.toFixed(1)})</Label>
+                        <ResetButton onClick={() => store.updateText({ lineSpacing: 1.2 })} />
+                    </div>
+                    <Slider
+                        value={[store.text.lineSpacing]}
+                        min={0.8}
+                        max={2.5}
+                        step={0.1}
+                        onValueChange={(v) => store.updateText({ lineSpacing: v[0] })}
+                    />
+                </div>
+            )}
 
             <div className="flex items-center justify-between">
                <Label htmlFor="text-split">文字错位 / 分离</Label>
-               <Switch 
-                 id="text-split" 
-                 checked={store.text.isSplit} 
-                 onCheckedChange={(c) => store.updateText({ isSplit: c })} 
+               <Switch
+                 id="text-split"
+                 checked={store.text.isSplit}
+                 onCheckedChange={(c) => store.updateText({ isSplit: c })}
                />
             </div>
 
@@ -498,14 +529,74 @@ export default function Controls() {
                    <Label>旋转 ({store.text.rotation}°)</Label>
                    <ResetButton onClick={() => store.updateText({ rotation: 0 })} />
                </div>
-               <Slider 
-                 value={[store.text.rotation]} 
-                 min={0} 
-                 max={360} 
-                 step={1} 
-                 onValueChange={(v) => store.updateText({ rotation: v[0] })} 
+               <Slider
+                 value={[store.text.rotation]}
+                 min={0}
+                 max={360}
+                 step={1}
+                 onValueChange={(v) => store.updateText({ rotation: v[0] })}
                />
             </div>
+
+            <div className="flex items-center justify-between">
+               <Label htmlFor="text-shadow">文字阴影</Label>
+               <Switch
+                 id="text-shadow"
+                 checked={store.text.shadow}
+                 onCheckedChange={(c) => store.updateText({ shadow: c })}
+               />
+            </div>
+
+            {store.text.shadow && (
+                <div className="space-y-2 p-3 bg-muted/30 rounded-lg border">
+                    <div className="flex items-center justify-between">
+                       <Label className="text-xs">阴影颜色</Label>
+                       <ColorPicker color={store.text.shadowColor} onChange={(c) => store.updateText({ shadowColor: c })} />
+                    </div>
+                    
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                            <Label className="text-xs">模糊 ({store.text.shadowBlur}px)</Label>
+                            <ResetButton onClick={() => store.updateText({ shadowBlur: 10 })} />
+                        </div>
+                        <Slider
+                            value={[store.text.shadowBlur]}
+                            min={0}
+                            max={50}
+                            step={1}
+                            onValueChange={(v) => store.updateText({ shadowBlur: v[0] })}
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                            <Label className="text-xs">水平偏移 ({store.text.shadowOffsetX}px)</Label>
+                            <ResetButton onClick={() => store.updateText({ shadowOffsetX: 2 })} />
+                        </div>
+                        <Slider
+                            value={[store.text.shadowOffsetX]}
+                            min={-50}
+                            max={50}
+                            step={1}
+                            onValueChange={(v) => store.updateText({ shadowOffsetX: v[0] })}
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                            <Label className="text-xs">垂直偏移 ({store.text.shadowOffsetY}px)</Label>
+                            <ResetButton onClick={() => store.updateText({ shadowOffsetY: 2 })} />
+                        </div>
+                        <Slider
+                            value={[store.text.shadowOffsetY]}
+                            min={-50}
+                            max={50}
+                            step={1}
+                            onValueChange={(v) => store.updateText({ shadowOffsetY: v[0] })}
+                        />
+                    </div>
+                </div>
+            )}
           </section>
 
           <Separator />

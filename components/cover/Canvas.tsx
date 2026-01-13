@@ -4,6 +4,8 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useCoverStore, RATIOS } from '@/store/useCoverStore';
 import { Icon } from '@iconify/react';
 import { cn } from '@/lib/utils';
+import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Canvas() {
   const {
@@ -16,6 +18,7 @@ export default function Canvas() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [userScale, setUserScale] = useState(1);
 
   // Calculate the bounding box required for all selected ratios
   const dimensions = useMemo(() => {
@@ -41,13 +44,18 @@ export default function Canvas() {
 
       const scaleX = availableWidth / dimensions.width;
       const scaleY = availableHeight / dimensions.height;
-      setScale(Math.min(scaleX, scaleY) * 0.9); 
+      setScale(Math.min(scaleX, scaleY) * 0.9);
     };
 
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [dimensions]);
+
+  // Zoom controls
+  const handleZoomIn = () => setUserScale(prev => Math.min(prev + 0.1, 3));
+  const handleZoomOut = () => setUserScale(prev => Math.max(prev - 0.1, 0.3));
+  const handleZoomReset = () => setUserScale(1);
 
   // Helper to convert hex to rgba
   const hexToRgba = (hex: string, alpha: number) => {
@@ -101,22 +109,52 @@ export default function Canvas() {
       );
   };
 
+  // Helper to split text into lines based on lineMode
+  const splitTextIntoLines = (content: string, mode: 'single' | 'double' | 'triple'): string[] => {
+      if (mode === 'single') return [content];
+      
+      const words = content.split('');
+      const lines: string[] = [];
+      const linesCount = mode === 'double' ? 2 : 3;
+      const charsPerLine = Math.ceil(words.length / linesCount);
+      
+      for (let i = 0; i < linesCount; i++) {
+          const start = i * charsPerLine;
+          const end = start + charsPerLine;
+          const line = words.slice(start, end).join('');
+          if (line) lines.push(line);
+      }
+      
+      return lines;
+  };
+
   // Helper to render Text
-  const renderText = (content: string, offsetX: number = 0, offsetY: number = 0) => (
-      <div
-          className="whitespace-pre text-center leading-tight"
-          style={{
-              transform: `translate(${offsetX}px, ${offsetY}px) rotate(${text.rotation}deg)`,
-              fontSize: `${text.fontSize}px`,
-              color: text.color,
-              fontWeight: text.fontWeight,
-              fontFamily: text.font,
-              WebkitTextStroke: text.strokeWidth > 0 ? `${text.strokeWidth}px ${text.strokeColor}` : undefined,
-          }}
-      >
-          {content}
-      </div>
-  );
+  const renderText = (content: string, offsetX: number = 0, offsetY: number = 0) => {
+      const lines = splitTextIntoLines(content, text.lineMode);
+      
+      return (
+          <div
+              className="text-center"
+              style={{
+                  transform: `translate(${offsetX}px, ${offsetY}px) rotate(${text.rotation}deg)`,
+                  fontSize: `${text.fontSize}px`,
+                  color: text.color,
+                  fontWeight: text.fontWeight,
+                  fontFamily: text.font,
+                lineHeight: text.lineSpacing,
+                whiteSpace: 'pre-wrap',
+                  WebkitTextStroke: text.strokeWidth > 0 ? `${text.strokeWidth}px ${text.strokeColor}` : undefined,
+                  textShadow: text.shadow ? `${text.shadowOffsetX}px ${text.shadowOffsetY}px ${text.shadowBlur}px ${text.shadowColor}` : undefined,
+              }}
+          >
+              {lines.map((line, index) => (
+                <div key={index} className="whitespace-pre-wrap">
+                      {line}
+                  </div>
+              ))}
+          </div>
+      );
+  };
 
   // Determine Layout Content
   const renderContent = () => {
@@ -156,6 +194,40 @@ export default function Canvas() {
 
   return (
     <div className="flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden relative w-full h-[40vh] md:h-full min-w-0 flex-shrink-0 md:flex-shrink">
+      {/* Zoom Controls */}
+      <div className="absolute top-4 right-4 z-50 flex flex-col gap-2 export-exclude">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleZoomIn}
+          className="h-8 w-8 bg-white/90 hover:bg-white shadow-md"
+          title="放大"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleZoomOut}
+          className="h-8 w-8 bg-white/90 hover:bg-white shadow-md"
+          title="缩小"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleZoomReset}
+          className="h-8 w-8 bg-white/90 hover:bg-white shadow-md"
+          title="重置缩放"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+        <div className="text-xs text-center text-muted-foreground bg-white/90 px-2 py-1 rounded shadow-md">
+          {Math.round(userScale * 100)}%
+        </div>
+      </div>
+
       {/* Container for scaling */}
       <div
         ref={containerRef}
@@ -165,7 +237,7 @@ export default function Canvas() {
           position: 'absolute',
           left: '50%',
           top: '50%',
-          transform: `translate(-50%, -50%) scale(${scale})`,
+          transform: `translate(-50%, -50%) scale(${scale * userScale})`,
           transformOrigin: 'center',
         }}
         className="transition-all duration-300"

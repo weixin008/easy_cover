@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type AspectRatio = '1:1' | '16:9' | '21:9' | '4:3' | '2:1';
 
@@ -28,6 +29,15 @@ interface TextSettings {
   leftOffsetY: number;
   rightOffsetX: number;
   rightOffsetY: number;
+  // Multi-line settings
+  lineMode: 'single' | 'double' | 'triple';
+  lineSpacing: number; // Line height multiplier
+  // Shadow settings
+  shadow: boolean;
+  shadowColor: string;
+  shadowBlur: number;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
 }
 
 interface IconSettings {
@@ -87,77 +97,107 @@ interface CoverState {
   updateBackground: (settings: Partial<BackgroundSettings>) => void;
 }
 
-export const useCoverStore = create<CoverState>((set) => ({
-  selectedRatios: ['16:9'],
-  showRuler: true,
-  text: {
-    content: '封面标题',
-    fontSize: 160,
-    color: '#000000',
-    strokeColor: '#ffffff',
-    strokeWidth: 0,
-    fontWeight: 700,
-    x: 0,
-    y: 0,
-    rotation: 0,
-    font: 'Inter, sans-serif',
-    isSplit: false,
-    leftOffsetX: 0,
-    leftOffsetY: 0,
-    rightOffsetX: 0,
-    rightOffsetY: 0,
-  },
-  icon: {
-    name: 'logos:react',
-    size: 120,
-    color: '#000000',
-    shadow: true,
-    x: 0,
-    y: 0,
-    rotation: 0,
-    bgShape: 'rounded-square', // Default to a nice card look
-    bgColor: '#ffffff',
-    padding: 40,
-    radius: 40,
-    shadowColor: 'rgba(0,0,0,0.3)',
-    shadowBlur: 6,
-    shadowOffsetY: 4,
-    bgOpacity: 1,
-    bgBlur: 0,
-    customIconRadius: 0,
-  },
-  background: {
-    type: 'solid',
-    color: '#f3f4f6',
-    imageUrl: '',
-    blur: 0,
-    radius: 0,
-    shadow: false,
-    opacity: 1,
-    shadowColor: 'rgba(0,0,0,0.3)',
-    shadowBlur: 30,
-    shadowOffsetY: 10,
-    scale: 1,
-    positionX: 50,
-    positionY: 50,
-    rotation: 0,
-  },
+export const useCoverStore = create<CoverState>()(
+  persist(
+    (set) => ({
+      selectedRatios: ['16:9'],
+      showRuler: true,
+      text: {
+        content: '封面标题',
+        fontSize: 160,
+        color: '#000000',
+        strokeColor: '#ffffff',
+        strokeWidth: 0,
+        fontWeight: 700,
+        x: 0,
+        y: 0,
+        rotation: 0,
+        font: 'Inter, sans-serif',
+        isSplit: false,
+        leftOffsetX: 0,
+        leftOffsetY: 0,
+        rightOffsetX: 0,
+        rightOffsetY: 0,
+        lineMode: 'single',
+        lineSpacing: 1.2,
+        shadow: false,
+        shadowColor: 'rgba(0,0,0,0.5)',
+        shadowBlur: 10,
+        shadowOffsetX: 2,
+        shadowOffsetY: 2,
+      },
+      icon: {
+        name: 'logos:react',
+        size: 120,
+        color: '#000000',
+        shadow: true,
+        x: 0,
+        y: 0,
+        rotation: 0,
+        bgShape: 'rounded-square',
+        bgColor: '#ffffff',
+        padding: 40,
+        radius: 40,
+        shadowColor: 'rgba(0,0,0,0.3)',
+        shadowBlur: 6,
+        shadowOffsetY: 4,
+        bgOpacity: 1,
+        bgBlur: 0,
+        customIconRadius: 0,
+      },
+      background: {
+        type: 'solid',
+        color: '#f3f4f6',
+        imageUrl: '',
+        blur: 0,
+        radius: 0,
+        shadow: false,
+        opacity: 1,
+        shadowColor: 'rgba(0,0,0,0.3)',
+        shadowBlur: 30,
+        shadowOffsetY: 10,
+        scale: 1,
+        positionX: 50,
+        positionY: 50,
+        rotation: 0,
+      },
 
-  toggleRatio: (ratio) =>
-    set((state) => {
-      const exists = state.selectedRatios.includes(ratio);
-      if (exists && state.selectedRatios.length === 1) return state; // Prevent empty
-      return {
-        selectedRatios: exists
-          ? state.selectedRatios.filter((r) => r !== ratio)
-          : [...state.selectedRatios, ratio],
-      };
+      toggleRatio: (ratio) =>
+        set((state) => {
+          const exists = state.selectedRatios.includes(ratio);
+          if (exists && state.selectedRatios.length === 1) return state;
+          return {
+            selectedRatios: exists
+              ? state.selectedRatios.filter((r) => r !== ratio)
+              : [...state.selectedRatios, ratio],
+          };
+        }),
+      setShowRuler: (show) => set({ showRuler: show }),
+      updateText: (settings) =>
+        set((state) => ({ text: { ...state.text, ...settings } })),
+      updateIcon: (settings) =>
+        set((state) => ({ icon: { ...state.icon, ...settings } })),
+      updateBackground: (settings) =>
+        set((state) => ({ background: { ...state.background, ...settings } })),
     }),
-  setShowRuler: (show) => set({ showRuler: show }),
-  updateText: (settings) =>
-    set((state) => ({ text: { ...state.text, ...settings } })),
-  updateIcon: (settings) =>
-    set((state) => ({ icon: { ...state.icon, ...settings } })),
-  updateBackground: (settings) =>
-    set((state) => ({ background: { ...state.background, ...settings } })),
-}));
+    {
+      name: 'easy-cover-storage',
+      partialize: (state) => ({
+        selectedRatios: state.selectedRatios,
+        showRuler: state.showRuler,
+        text: {
+          ...state.text,
+          customIconUrl: undefined, // Don't persist file URLs
+        },
+        icon: {
+          ...state.icon,
+          customIconUrl: undefined, // Don't persist file URLs
+        },
+        background: {
+          ...state.background,
+          imageUrl: state.background.type === 'image' ? undefined : state.background.imageUrl, // Don't persist uploaded images
+        },
+      }),
+    }
+  )
+);
